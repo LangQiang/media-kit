@@ -121,4 +121,6 @@ public class MediaHelper {
     private native void addGifWater(String mp4InputPath, String gif, String outPutPath, String waterW, String waterH, String xPercent, String yPercent);
 
     private native void videoClips(String mp4InputPath, String outPutPath, String startTime, String duration);
+
+    public native String getFFmpegVersion();
 }

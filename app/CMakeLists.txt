@@ -37,8 +37,8 @@ find_library( # Sets the name of the path variable.
               # you want CMake to locate.
               log )
 
-include_directories(/Users/LesPark-sh/Downloads/ffmpeg-3.2.12 /Users/LesPark-sh/Downloads/x264-snapshot-20181016-2245)
-#include_directories(/Users/LesPark-sh/Downloads/ffmpeg-3.2.12)
+#include_directories(/Users/LesPark-sh/Downloads/ffmpeg-3.2.12 /Users/LesPark-sh/Downloads/x264-snapshot-20181016-2245)
+include_directories(/Users/chu/Develop/android/ffmpeg-3.2.12)
 
 add_library( avcodec-57
              SHARED

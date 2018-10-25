@@ -21,6 +21,7 @@ public class MainActivity extends AppCompatActivity {
 
         // Example of a call to a native method
         final TextView tv = (TextView) findViewById(R.id.sample_text);
+        tv.setText(MediaHelper.getInstance().getFFmpegVersion());
         tv.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -112,5 +113,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
+
+
 
 }

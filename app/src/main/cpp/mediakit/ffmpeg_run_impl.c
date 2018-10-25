@@ -221,8 +221,15 @@ Java_com_lq_mediakit_MediaHelper_videoClips(
     genv = NULL;
 
     return ret;
-
 }
+
+
+JNIEXPORT jstring JNICALL Java_com_lq_mediakit_MediaHelper_getFFmpegVersion(
+        JNIEnv *env,
+        jobject obj) {
+    return (*env)->NewStringUTF(env, "v3.1.2");
+}
+
 
 
 
