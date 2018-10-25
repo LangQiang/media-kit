@@ -1,15 +1,11 @@
 #include "ffmpeg.h"
 
-#ifdef ANDROID
 
 #include <jni.h>
 #include <android/log.h>
 #include <string.h>
+#define LOGE(format, ...) __android_log_print(ANDROID_LOG_ERROR,"ffmepg_ndk",format,##__VA_ARGS__)
 
-#define LOGE(format, ...) __android_log_print(ANDROID_LOG_ERROR,"myndk",format,##__VA_ARGS__)
-#else
-#define LOGE(format,...) printf("(>_<)"format "\n",##__VA_ARGS__)
-#endif
 
 
 static jclass jc;
@@ -30,13 +26,13 @@ Java_com_lq_mediakit_MediaHelper_addGifWater(
         jstring xPercent,
         jstring yPercent
 ) {
-    char info[10000] = {0};
-    av_register_all();
+//    char info[10000] = {0};
+//    av_register_all();
+//
+//    sprintf(info, "%s\n", avcodec_configuration());
 
-    sprintf(info, "%s\n", avcodec_configuration());
-
-    //LOGE("%s", info);
-    LOGE("%s", info);
+//    //LOGE("%s", info);
+//    LOGE("%s", info);
     jc = (*env)->GetObjectClass(env, thiz);
     genv = env;
     jobj = (*env)->NewGlobalRef(env, thiz);
@@ -169,6 +165,63 @@ void callJavaMethod(char *ret) {
     jmethodID methodID = (*genv)->GetMethodID(genv, jc, "onProgress", "(II)V");
     //调用该方法
     (*genv)->CallVoidMethod(genv, jobj, methodID, result, duration);
+}
+
+JNIEXPORT jint JNICALL
+Java_com_lq_mediakit_MediaHelper_videoClips(
+
+        JNIEnv *env,
+        jobject thiz,
+        jstring mp4InputPath,
+        jstring outPutPath,
+        jstring startTime,
+        jstring duration
+) {
+//    char info[10000] = {0};
+//    av_register_all();
+//
+//    sprintf(info, "%s\n", avcodec_configuration());
+//
+//    //LOGE("%s", info);
+//    LOGE("%s", info);
+    jc = (*env)->GetObjectClass(env, thiz);
+    genv = env;
+    jobj = (*env)->NewGlobalRef(env, thiz);
+
+    const char *jinput = (char *) (*env)->GetStringUTFChars(env, mp4InputPath, 0);
+
+    const char *jout = (char *) (*env)->GetStringUTFChars(env, outPutPath, 0);
+
+    const char *jstartTime = (char *) (*env)->GetStringUTFChars(env, startTime, 0);
+
+    const char *jduration = (char *) (*env)->GetStringUTFChars(env, duration, 0);
+
+    char *argv1[] = {"ffmepg",
+                     "-y",
+                     "-i",
+                     jinput,
+                     "-ss",
+                     jstartTime,
+                     "-t",
+                     jduration,
+                     jout};
+    int argc1 = 0;
+    argc1 = sizeof(argv1) / sizeof(argv1[0]);
+
+
+
+    LOGE("ff_run");
+    int ret = ff_run(argc1, argv1);
+    (*env)->ReleaseStringUTFChars(env, mp4InputPath, jinput);
+    (*env)->ReleaseStringUTFChars(env, outPutPath, jout);
+    (*env)->ReleaseStringUTFChars(env, duration, jduration);
+    (*env)->ReleaseStringUTFChars(env, startTime, jstartTime);
+    jc = NULL;
+    jobj = NULL;
+    genv = NULL;
+
+    return ret;
+
 }
 
 
