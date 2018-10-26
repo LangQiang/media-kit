@@ -1,4 +1,4 @@
-package com.lq.mediakit;
+package com.lq.mediakit.jni;
 
 
 import android.util.Log;

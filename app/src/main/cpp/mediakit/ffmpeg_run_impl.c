@@ -14,7 +14,7 @@ static jobject jobj;
 static int duration = -1;
 
 JNIEXPORT jint JNICALL
-Java_com_lq_mediakit_MediaHelper_addGifWater(
+Java_com_lq_mediakit_jni_MediaHelper_addGifWater(
 
         JNIEnv *env,
         jobject thiz,
@@ -168,7 +168,7 @@ void callJavaMethod(char *ret) {
 }
 
 JNIEXPORT jint JNICALL
-Java_com_lq_mediakit_MediaHelper_videoClips(
+Java_com_lq_mediakit_jni_MediaHelper_videoClips(
 
         JNIEnv *env,
         jobject thiz,
@@ -224,7 +224,7 @@ Java_com_lq_mediakit_MediaHelper_videoClips(
 }
 
 
-JNIEXPORT jstring JNICALL Java_com_lq_mediakit_MediaHelper_getFFmpegVersion(
+JNIEXPORT jstring JNICALL Java_com_lq_mediakit_jni_MediaHelper_getFFmpegVersion(
         JNIEnv *env,
         jobject obj) {
     return (*env)->NewStringUTF(env, "v3.1.2");
