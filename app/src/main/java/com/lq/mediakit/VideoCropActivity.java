@@ -1,0 +1,238 @@
+package com.lq.mediakit;
+
+import android.app.Activity;
+import android.content.Intent;
+import android.media.MediaPlayer;
+import android.net.Uri;
+import android.os.Bundle;
+import android.support.annotation.Nullable;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.util.Log;
+import android.view.View;
+import android.widget.TextView;
+import android.widget.Toast;
+import android.widget.VideoView;
+
+import com.lq.mediakit.media.FrameExtractor10;
+import com.lq.mediakit.utils.VideoUtils;
+import com.lq.mediakit.widget.VideoSliceSeekBar;
+import com.lq.mediakit.media.VideoTrimAdapter;
+
+
+public class VideoCropActivity extends Activity implements View.OnClickListener {
+    
+    private static final String TAG = VideoCropActivity.class.getSimpleName();
+
+    private int screenWidth;
+    private int screenHeight;
+
+    private VideoView mVideoView;
+    private Uri mVideoUri;
+
+    private RecyclerView mRecyclerView;
+    private VideoTrimAdapter mAdapter;
+    private RecyclerView.LayoutManager mLayoutManager;
+
+    private TextView mDurationTextView;
+    private VideoSliceSeekBar mSeekBar;
+
+    public FrameExtractor10 mFrameExtractor;
+
+    private int cropDuration = 5000; // min
+    private float duration;
+
+    private float mStartTime;
+    private float mEndTime;
+
+    @Override
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        screenWidth = getResources().getDisplayMetrics().widthPixels;
+        screenHeight = getResources().getDisplayMetrics().heightPixels;
+
+        Log.d(TAG, "screen_width=" + screenWidth + " screen_height=" + screenHeight);
+
+        Intent intent = getIntent();
+        mVideoUri = intent.getParcelableExtra("video_uri");
+
+        setContentView(R.layout.activity_video_crop);
+        initView();
+    }
+
+    private void initView() {
+        initVideoView();
+        initRecyclerView();
+
+        mDurationTextView = findViewById(R.id.tv_video_crop_duration);
+
+        mSeekBar = findViewById(R.id.seek_bar_video_crop);
+        mSeekBar.setSeekBarChangeListener(mSeekBarListener);
+
+        findViewById(R.id.btn_video_crop_cancel).setOnClickListener(this);
+        findViewById(R.id.btn_video_crop_confirm).setOnClickListener(this);
+    }
+
+    private void initVideoView() {
+        mVideoView = findViewById(R.id.vv_video_crop);
+        mVideoView.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
+            @Override
+            public void onPrepared(MediaPlayer mp) {
+                onVideoPrepared();
+            }
+        });
+
+        mVideoView.setVideoURI(mVideoUri);
+        mVideoView.start();
+    }
+
+    private void initRecyclerView() {
+        mRecyclerView = findViewById(R.id.recycler_view_video_crop);
+        mRecyclerView.addOnScrollListener(mRecyclerViewScrollListener);
+        
+        mLayoutManager = new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false);
+        mRecyclerView.setLayoutManager(mLayoutManager);
+
+        mFrameExtractor = new FrameExtractor10();
+        mFrameExtractor.setDataSource(VideoUtils.getVideoPath(this, mVideoUri));
+
+        mAdapter = new VideoTrimAdapter(this, mVideoView.getDuration(), Integer.MAX_VALUE, mFrameExtractor, mSeekBar);
+        mRecyclerView.setAdapter(mAdapter);
+    }
+
+    private void onVideoPrepared() {
+        duration = mVideoView.getDuration();
+        
+        int minDiff = (int)(cropDuration / duration * 100) + 1;
+        mSeekBar.setProgressMinDiff(minDiff > 100 ? 100 : minDiff);
+        
+        mAdapter.duration = duration;
+        mAdapter.notifyDataSetChanged();
+    }
+
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()) {
+            case R.id.btn_video_crop_cancel:
+                finish();
+                Toast.makeText(this, "Cancel", Toast.LENGTH_SHORT).show();
+                break;
+            case R.id.btn_video_crop_confirm:
+                Toast.makeText(this, "Start Clip", Toast.LENGTH_SHORT).show();
+                break;
+        }
+    }
+
+    private void pauseVideo() {
+        if (mVideoView.isPlaying()) {
+            mVideoView.pause();
+        }
+    }
+
+    private void resumeVideo() {
+        if (!mVideoView.isPlaying()) {
+            mVideoView.start();
+        }
+    }
+
+    // Listeners
+
+    private int mRecyclerViewOffsetX;
+    private boolean shouldUpdateCropDuration;
+
+    private final RecyclerView.OnScrollListener mRecyclerViewScrollListener = new RecyclerView.OnScrollListener() {
+        @Override 
+        public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
+            super.onScrollStateChanged(recyclerView, newState);
+            shouldUpdateCropDuration = true;
+            if (newState == 1) {
+                pauseVideo();
+            } else {
+                resumeVideo();
+            }
+        }
+
+        @Override 
+        public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+            super.onScrolled(recyclerView, dx, dy);
+            mRecyclerViewOffsetX = recyclerView.computeHorizontalScrollOffset();
+            onVideoCropSectionChange(0, 0);
+        }
+    };
+
+    /* 距离做屏幕边缘 */
+    private float mLeftThumbXInScreen = 0;
+    private float mRightThumbXInScreen = -1;
+
+    private final VideoSliceSeekBar.SeekBarChangeListener mSeekBarListener = new VideoSliceSeekBar.SeekBarChangeListener() {
+        /**
+         * SeekBar 滑动回调
+         * @param leftThumb  左侧按钮在 SeekBar 中的位置（0-100）
+         * @param rightThumb 右侧按钮在 SeekBar 中的位置（0-100）
+         * @param whichSide 0 左侧；1 右侧
+         */
+        @Override
+        public void seekBarValueChanged(float leftThumb, float rightThumb, int whichSide) {
+            // 距离屏幕左边缘的距离
+            mLeftThumbXInScreen  = (int)mSeekBar.getX() + (int)(mSeekBar.getWidth() * leftThumb/100);
+            mRightThumbXInScreen = (int)mSeekBar.getX() + (int)(mSeekBar.getWidth() * rightThumb/100);
+
+            onVideoCropSectionChange(whichSide, 1);
+        }
+
+        @Override
+        public void onSeekStart() {
+            shouldUpdateCropDuration = true;
+            pauseVideo();
+        }
+
+        @Override
+        public void onSeekEnd() {
+            resumeVideo();
+        }
+    };
+
+    /**
+     * 处理视频剪辑区域变化
+     * @param whichSide 0 左边；1 右边；
+     * @param source 0 RecyclerView 滑动触发； 1 SeekBar 滑动触发
+     */
+    private void onVideoCropSectionChange(int whichSide, int source) {
+        if (mRightThumbXInScreen == -1) {
+            mRightThumbXInScreen = screenWidth;
+        }
+
+        // Thumb 的位置系映射到 RecyclerView 上
+        float leftThumbOffsetX = mRecyclerViewOffsetX + mLeftThumbXInScreen;
+        float rightThumbOffsetX = mRecyclerViewOffsetX + mRightThumbXInScreen;
+
+        // 计算百分比
+        float totalWidth = mAdapter.getItemWidth() * mAdapter.getItemCount();
+
+        float seekPos;
+        // 滑动 RecyclerView 时使用 LeftThumb
+        if (whichSide == 0 || source == 0) {
+            seekPos = (leftThumbOffsetX / totalWidth) * duration;
+        } else if (whichSide == 1) {
+            seekPos = (rightThumbOffsetX / totalWidth) * duration;
+        } else {
+            return;
+        }
+
+        float cropDuration = (rightThumbOffsetX - leftThumbOffsetX) / totalWidth * duration;
+
+        mStartTime = seekPos;
+        mEndTime = seekPos + cropDuration;
+
+        Log.d(TAG, "seek to: " + seekPos + " duration:" + mVideoView.getDuration() + " crop_duration:" + cropDuration);
+
+        if (mVideoView != null) {
+            mVideoView.seekTo((int)seekPos);
+        }
+
+        if (shouldUpdateCropDuration) {
+            mDurationTextView.setText(String.format("%.1fs", cropDuration / 1000));
+        }
+    }
+
+}

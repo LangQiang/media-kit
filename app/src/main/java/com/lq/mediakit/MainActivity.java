@@ -1,10 +1,8 @@
 package com.lq.mediakit;
 
 import android.content.Intent;
-import android.icu.util.UniversalTimeScale;
 import android.media.MediaPlayer;
 import android.net.Uri;
-import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -13,14 +11,9 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.lq.mediakit.jni.MediaHelper;
-import com.lq.mediakit.utils.Utils;
+import com.lq.mediakit.utils.VideoUtils;
 
-import android.provider.DocumentsContract;
-import android.provider.MediaStore;
 import android.widget.VideoView;
-
-import java.io.File;
 
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
@@ -57,6 +50,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        if (mSelectedVideoUri != null) {
+            mVideoView.resume();
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (mVideoView.isPlaying()) {
+            mVideoView.pause();
+        }
+    }
+
+    @Override
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.btn_main_pick_video:
@@ -80,7 +89,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void clipVideo() {
-        String srcVideoPath = Utils.getVideoPath(this, mSelectedVideoUri);
+        String srcVideoPath = VideoUtils.getVideoPath(this, mSelectedVideoUri);
         Toast.makeText(this, srcVideoPath, Toast.LENGTH_SHORT).show();
 
         Log.i(TAG, "selected video path: " + srcVideoPath);
@@ -89,7 +98,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void compressVideo() {
-
+        Intent intent = new Intent(this, VideoCropActivity.class);
+        intent.putExtra("video_uri", mSelectedVideoUri);
+        startActivity(intent);
     }
 
     private void previewVideo(String videoPath) {
