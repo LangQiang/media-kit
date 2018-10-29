@@ -162,56 +162,52 @@ void callJavaMethod(char *ret) {
     } else {
         return;
     }
-    jmethodID methodID = (*genv)->GetMethodID(genv, jc, "onProgress", "(II)V");
+    jmethodID methodID = (*genv)->GetMethodID(genv, jc, "onProgress", "(FF)V");
     //调用该方法
-    (*genv)->CallVoidMethod(genv, jobj, methodID, result, duration);
+    (*genv)->CallVoidMethod(genv, jobj, methodID, (float)result, (float)duration);
 }
 
-JNIEXPORT jint JNICALL
-Java_com_lq_mediakit_jni_MediaHelper_videoClips(
-
+JNIEXPORT jint JNICALL Java_com_lq_mediakit_jni_MediaHelper_videoClips(
         JNIEnv *env,
-        jobject thiz,
+        jobject obj,
         jstring mp4InputPath,
         jstring outPutPath,
         jstring startTime,
-        jstring duration
-) {
-//    char info[10000] = {0};
-//    av_register_all();
-//
-//    sprintf(info, "%s\n", avcodec_configuration());
-//
-//    //LOGE("%s", info);
-//    LOGE("%s", info);
-    jc = (*env)->GetObjectClass(env, thiz);
+        jstring duration) {
+
+    jc = (*env)->GetObjectClass(env, obj);
     genv = env;
-    jobj = (*env)->NewGlobalRef(env, thiz);
+    jobj = (*env)->NewGlobalRef(env, obj);
 
     const char *jinput = (char *) (*env)->GetStringUTFChars(env, mp4InputPath, 0);
-
     const char *jout = (char *) (*env)->GetStringUTFChars(env, outPutPath, 0);
-
     const char *jstartTime = (char *) (*env)->GetStringUTFChars(env, startTime, 0);
-
     const char *jduration = (char *) (*env)->GetStringUTFChars(env, duration, 0);
 
-    char *argv1[] = {"ffmepg",
-                     "-y",
-                     "-i",
-                     jinput,
-                     "-ss",
-                     jstartTime,
-                     "-t",
-                     jduration,
-                     jout};
-    int argc1 = 0;
-    argc1 = sizeof(argv1) / sizeof(argv1[0]);
+    // ffmpeg -ss <> -y -i <> -t 10 -vcodec libx264 -b:v <> -b:a <> -ac <> -ar <>
+    char *args[] = {
+            "ffmepg",
+            "-y",
+            "-ss",
+            jstartTime,
+            "-i",
+            jinput,
+            "-t",
+            jduration,
+            "-c:v",
+            "libx264",
+            "-c:a",
+            "copy",
+            "-r",
+            "25",
+            jout
+    };
 
-
+    int argc = 0;
+    argc = sizeof(args) / sizeof(args[0]);
 
     LOGE("ff_run");
-    int ret = ff_run(argc1, argv1);
+    int ret = ff_run(argc, args);
     (*env)->ReleaseStringUTFChars(env, mp4InputPath, jinput);
     (*env)->ReleaseStringUTFChars(env, outPutPath, jout);
     (*env)->ReleaseStringUTFChars(env, duration, jduration);

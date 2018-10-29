@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <VideoView
+            android:id="@+id/vv_video_crop"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:background="@android:color/holo_orange_dark">
+
+        <TextView
+            android:id="@+id/tv_video_crop_duration"
+            android:layout_width="match_parent"
+            android:layout_height="30dp"
+            android:textSize="14dp"
+            android:gravity="center_horizontal"
+            android:text="拖动选择视频片段"
+            android:layout_marginTop="10dp"/>
+
+        <FrameLayout
+            android:layout_below="@id/tv_video_crop_duration"
+            android:layout_width="match_parent"
+            android:layout_height="60dp">
+
+            <android.support.v7.widget.RecyclerView
+                android:id="@+id/recycler_view_video_crop"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"/>
+
+            <com.lq.mediakit.widget.VideoSliceSeekBar
+                android:id="@+id/seek_bar_video_crop"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                />
+
+        </FrameLayout>
+    </RelativeLayout>
+
+    <Button
+        android:id="@+id/btn_video_crop_cancel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="10dp"
+        android:text="Cancel"/>
+
+    <Button
+        android:id="@+id/btn_video_crop_confirm"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Crop"
+        android:layout_marginRight="10dp"
+        android:layout_alignParentRight="true"/>
+
+    <ProgressBar
+        android:id="@+id/pbar_video_crop"
+        android:layout_width="match_parent"
+        android:layout_height="10dp"
+        android:layout_marginTop="60dp"
+        android:layout_marginLeft="10dp"
+        android:layout_marginRight="10dp" />
+
+</RelativeLayout>

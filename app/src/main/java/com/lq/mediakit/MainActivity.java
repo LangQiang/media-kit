@@ -98,7 +98,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void compressVideo() {
-        Intent intent = new Intent(this, VideoCropActivity.class);
+        Intent intent = new Intent(this, VideoTrimActivity.class);
         intent.putExtra("video_uri", mSelectedVideoUri);
         startActivity(intent);
     }

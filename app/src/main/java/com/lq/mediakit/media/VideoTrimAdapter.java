@@ -107,6 +107,7 @@ public class VideoTrimAdapter extends RecyclerView.Adapter {
         ViewHolder(View itemView) {
             super(itemView);
             thumbImageView = itemView.findViewById(R.id.iv_video_thumb);
+            thumbImageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
 
             RecyclerView.LayoutParams params = (RecyclerView.LayoutParams) itemView.getLayoutParams();
             params.width = getItemWidth();

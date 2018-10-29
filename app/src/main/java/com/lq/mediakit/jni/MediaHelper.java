@@ -8,7 +8,7 @@ import java.io.File;
 public class MediaHelper {
     private final static int TYPE_CLIPS = 1;
     private boolean isBusy;
-    private int clipDuration;
+    private float clipDuration;
     private int type = 0;
 
     static {
@@ -34,7 +34,7 @@ public class MediaHelper {
     public static abstract class CallBack {
         public abstract void onStart();
 
-        public abstract void onProgress(int progress, int duration);
+        public abstract void onProgress(float progress, float duration);
 
         public abstract void onEnd();
     }
@@ -80,7 +80,7 @@ public class MediaHelper {
         }).start();
     }
 
-    private void onProgress(int second, int duration) {
+    private void onProgress(float second, float duration) {
         if (mCallBack != null) {
             if (type == TYPE_CLIPS)
                 duration = clipDuration;
@@ -113,9 +113,10 @@ public class MediaHelper {
         }).start();
     }
 
-    private int parseTime(String time) {
-        String[] times = time.split(":");
-        return (Integer.parseInt(times[0]) * 3600 + Integer.parseInt(times[1]) * 60 + Integer.parseInt(times[2])) * 1000;
+    private float parseTime(String time) {
+        return Float.parseFloat(time);
+        // String[] times = time.split(":");
+        // return (Integer.parseInt(times[0]) * 3600 + Integer.parseInt(times[1]) * 60 + Integer.parseInt(times[2])) * 1000;
     }
 
     private native void addGifWater(String mp4InputPath, String gif, String outPutPath, String waterW, String waterH, String xPercent, String yPercent);
