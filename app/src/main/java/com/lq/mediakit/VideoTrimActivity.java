@@ -1,6 +1,9 @@
 package com.lq.mediakit;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.ProgressDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.media.MediaPlayer;
 import android.net.Uri;
@@ -16,18 +19,28 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.VideoView;
 
+import com.github.hiteshsondhi88.libffmpeg.ExecuteBinaryResponseHandler;
+import com.github.hiteshsondhi88.libffmpeg.FFmpeg;
+import com.github.hiteshsondhi88.libffmpeg.LoadBinaryResponseHandler;
+import com.github.hiteshsondhi88.libffmpeg.exceptions.FFmpegCommandAlreadyRunningException;
+import com.github.hiteshsondhi88.libffmpeg.exceptions.FFmpegNotSupportedException;
 import com.lq.mediakit.jni.MediaHelper;
 import com.lq.mediakit.media.FrameExtractor10;
 import com.lq.mediakit.utils.VideoUtils;
 import com.lq.mediakit.widget.VideoSliceSeekBar;
 import com.lq.mediakit.media.VideoTrimAdapter;
 
+
 import java.io.File;
+import java.util.Arrays;
 
 
 public class VideoTrimActivity extends Activity implements View.OnClickListener {
-    
+
     private static final String TAG = VideoTrimActivity.class.getSimpleName();
+
+    private FFmpeg ffmpeg;
+    private ProgressDialog progressDialog;
 
     private int screenWidth;
     private int screenHeight;
@@ -64,7 +77,105 @@ public class VideoTrimActivity extends Activity implements View.OnClickListener 
 
         setContentView(R.layout.activity_video_trim);
         initView();
+
+        progressDialog = new ProgressDialog(this);
+        progressDialog.setTitle(null);
+        progressDialog.setCancelable(false);
+
+        loadFFMpegBinary();
+
+
+        String dest = new File(Environment.getExternalStorageDirectory(), "out.mp4").getAbsolutePath();
+        File file = new File(dest);
+        file.deleteOnExit();
     }
+
+    /**
+     * Load FFmpeg binary
+     */
+    private void loadFFMpegBinary() {
+        try {
+            if (ffmpeg == null) {
+                Log.d(TAG, "ffmpeg : era nulo");
+                ffmpeg = FFmpeg.getInstance(this);
+            }
+            ffmpeg.loadBinary(new LoadBinaryResponseHandler() {
+                @Override
+                public void onFailure() {
+                    showUnsupportedExceptionDialog();
+                }
+
+                @Override
+                public void onSuccess() {
+                    Log.d(TAG, "ffmpeg : correct Loaded");
+                }
+            });
+        } catch (FFmpegNotSupportedException e) {
+            showUnsupportedExceptionDialog();
+        } catch (Exception e) {
+            Log.d(TAG, "EXception no controlada : " + e);
+        }
+    }
+
+    private void showUnsupportedExceptionDialog() {
+        new AlertDialog.Builder(VideoTrimActivity.this)
+                .setIcon(android.R.drawable.ic_dialog_alert)
+                .setTitle("Not Supported")
+                .setMessage("Device Not Supported")
+                .setCancelable(false)
+                .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        VideoTrimActivity.this.finish();
+                    }
+                })
+                .create()
+                .show();
+
+    }
+
+    /**
+     * Executing ffmpeg binary
+     */
+    private void execFFmpegBinary(final String[] command) {
+        try {
+            ffmpeg.execute(command, new ExecuteBinaryResponseHandler() {
+                @Override
+                public void onFailure(String s) {
+                    Log.d(TAG, "FAILED with output : " + s);
+                }
+
+                @Override
+                public void onSuccess(String s) {
+                    Log.d(TAG, "SUCCESS with output : " + s);
+                }
+
+                @Override
+                public void onProgress(String s) {
+                    Log.d(TAG, "Started command : ffmpeg " + command);
+                        progressDialog.setMessage("progress : splitting video " + s);
+                    Log.d(TAG, "progress : " + s);
+                }
+
+                @Override
+                public void onStart() {
+                    Log.d(TAG, "Started command : ffmpeg " + command);
+                    progressDialog.setMessage("Processing...");
+                    progressDialog.show();
+                }
+
+                @Override
+                public void onFinish() {
+                    Log.d(TAG, "Finished command : ffmpeg " + command);
+                    progressDialog.dismiss();
+
+                }
+            });
+        } catch (FFmpegCommandAlreadyRunningException e) {
+            // do nothing for now
+        }
+    }
+
 
     private void initView() {
         initVideoView();
@@ -100,7 +211,7 @@ public class VideoTrimActivity extends Activity implements View.OnClickListener 
     private void initRecyclerView() {
         mRecyclerView = findViewById(R.id.recycler_view_video_crop);
         mRecyclerView.addOnScrollListener(mRecyclerViewScrollListener);
-        
+
         mLayoutManager = new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false);
         mRecyclerView.setLayoutManager(mLayoutManager);
 
@@ -113,10 +224,10 @@ public class VideoTrimActivity extends Activity implements View.OnClickListener 
 
     private void onVideoPrepared() {
         duration = mVideoView.getDuration();
-        
+
         int minDiff = (int)(cropDuration / duration * 100) + 1;
         mSeekBar.setProgressMinDiff(minDiff > 100 ? 100 : minDiff);
-        
+
         mAdapter.duration = duration;
         mAdapter.notifyDataSetChanged();
     }
@@ -129,11 +240,24 @@ public class VideoTrimActivity extends Activity implements View.OnClickListener 
                 Toast.makeText(this, "Cancel", Toast.LENGTH_SHORT).show();
                 break;
             case R.id.btn_video_crop_confirm:
-                cropVideo();
+//                cropVideo();
+                trimVideoUsingFFmpegBinary();
                 Toast.makeText(this, "Start Clip", Toast.LENGTH_SHORT).show();
                 break;
         }
     }
+
+    private void trimVideoUsingFFmpegBinary() {
+        String sour = VideoUtils.getVideoPath(this, mVideoUri);
+        sour = new File(Environment.getExternalStorageDirectory(), "source.mp4").getAbsolutePath();
+        String dest = new File(Environment.getExternalStorageDirectory(), "out.mp4").getAbsolutePath();
+        String startTime = String.format("%.1f", mStartTime / 1000);
+        String duration = String.format("%.1f", (mEndTime - mStartTime) / 1000);
+
+        String[] complexCommand = {"-ss", "" + startTime, "-y", "-i", sour, "-t", "" + duration, "-c", "copy" , dest};
+        execFFmpegBinary(complexCommand);
+    }
+
 
     private ProgressBar mProgressBar;
 
@@ -200,7 +324,7 @@ public class VideoTrimActivity extends Activity implements View.OnClickListener 
     private boolean shouldUpdateCropDuration;
 
     private final RecyclerView.OnScrollListener mRecyclerViewScrollListener = new RecyclerView.OnScrollListener() {
-        @Override 
+        @Override
         public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
             super.onScrollStateChanged(recyclerView, newState);
             shouldUpdateCropDuration = true;
@@ -211,7 +335,7 @@ public class VideoTrimActivity extends Activity implements View.OnClickListener 
             }
         }
 
-        @Override 
+        @Override
         public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
             super.onScrolled(recyclerView, dx, dy);
             mRecyclerViewOffsetX = recyclerView.computeHorizontalScrollOffset();
