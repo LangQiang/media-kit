@@ -3,6 +3,8 @@ package com.lq.mediakit.utils;
 import android.content.ContentUris;
 import android.content.Context;
 import android.database.Cursor;
+import android.media.MediaMetadataRetriever;
+import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
@@ -10,6 +12,18 @@ import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 
 public class VideoUtils {
+
+    /**
+     * 视频时长毫秒
+     */
+    public static long getDuration(Context context, Uri videoUri) {
+        MediaMetadataRetriever retriever = new MediaMetadataRetriever();
+        retriever.setDataSource(context, videoUri);
+        String time = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION);
+        long timeInMillisec = Long.parseLong(time);
+        retriever.release();
+        return timeInMillisec;
+    }
 
     /**
      * Get a file path from a Uri. This will get the the path for Storage Access

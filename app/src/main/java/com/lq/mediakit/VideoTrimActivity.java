@@ -5,6 +5,7 @@ import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Rect;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
@@ -25,6 +26,7 @@ import com.github.hiteshsondhi88.libffmpeg.LoadBinaryResponseHandler;
 import com.github.hiteshsondhi88.libffmpeg.exceptions.FFmpegCommandAlreadyRunningException;
 import com.github.hiteshsondhi88.libffmpeg.exceptions.FFmpegNotSupportedException;
 import com.lq.mediakit.jni.MediaHelper;
+import com.lq.mediakit.media.FFmpegWrapper;
 import com.lq.mediakit.media.FrameExtractor10;
 import com.lq.mediakit.utils.VideoUtils;
 import com.lq.mediakit.widget.VideoSliceSeekBar;
@@ -82,39 +84,13 @@ public class VideoTrimActivity extends Activity implements View.OnClickListener 
         progressDialog.setTitle(null);
         progressDialog.setCancelable(false);
 
-        loadFFMpegBinary();
+        // loadFFMpegBinary();
+        FFmpegWrapper.getInstance(this);
 
 
         String dest = new File(Environment.getExternalStorageDirectory(), "out.mp4").getAbsolutePath();
         File file = new File(dest);
         file.deleteOnExit();
-    }
-
-    /**
-     * Load FFmpeg binary
-     */
-    private void loadFFMpegBinary() {
-        try {
-            if (ffmpeg == null) {
-                Log.d(TAG, "ffmpeg : era nulo");
-                ffmpeg = FFmpeg.getInstance(this);
-            }
-            ffmpeg.loadBinary(new LoadBinaryResponseHandler() {
-                @Override
-                public void onFailure() {
-                    showUnsupportedExceptionDialog();
-                }
-
-                @Override
-                public void onSuccess() {
-                    Log.d(TAG, "ffmpeg : correct Loaded");
-                }
-            });
-        } catch (FFmpegNotSupportedException e) {
-            showUnsupportedExceptionDialog();
-        } catch (Exception e) {
-            Log.d(TAG, "EXception no controlada : " + e);
-        }
     }
 
     private void showUnsupportedExceptionDialog() {
@@ -131,50 +107,63 @@ public class VideoTrimActivity extends Activity implements View.OnClickListener 
                 })
                 .create()
                 .show();
-
     }
 
     /**
-     * Executing ffmpeg binary
+     * Command for compressing video
      */
-    private void execFFmpegBinary(final String[] command) {
-        try {
-            ffmpeg.execute(command, new ExecuteBinaryResponseHandler() {
-                @Override
-                public void onFailure(String s) {
-                    Log.d(TAG, "FAILED with output : " + s);
-                }
+    private void executeCompressCommand() {
+        File moviesDir = Environment.getExternalStoragePublicDirectory(
+                Environment.DIRECTORY_MOVIES
+        );
 
-                @Override
-                public void onSuccess(String s) {
-                    Log.d(TAG, "SUCCESS with output : " + s);
-                }
+        String filePrefix = "compress_video";
+        String fileExtn = ".mp4";
+        String yourRealPath = VideoUtils.getVideoPath(this, mVideoUri);
 
-                @Override
-                public void onProgress(String s) {
-                    Log.d(TAG, "Started command : ffmpeg " + command);
-                        progressDialog.setMessage("progress : splitting video " + s);
-                    Log.d(TAG, "progress : " + s);
-                }
 
-                @Override
-                public void onStart() {
-                    Log.d(TAG, "Started command : ffmpeg " + command);
-                    progressDialog.setMessage("Processing...");
-                    progressDialog.show();
-                }
-
-                @Override
-                public void onFinish() {
-                    Log.d(TAG, "Finished command : ffmpeg " + command);
-                    progressDialog.dismiss();
-
-                }
-            });
-        } catch (FFmpegCommandAlreadyRunningException e) {
-            // do nothing for now
+        File dest = new File(moviesDir, filePrefix + fileExtn);
+        int fileNo = 0;
+        while (dest.exists()) {
+            fileNo++;
+            dest = new File(moviesDir, filePrefix + fileNo + fileExtn);
         }
+
+        Log.d(TAG, "startTrim: src: " + yourRealPath);
+        Log.d(TAG, "startTrim: dest: " + dest.getAbsolutePath());
+        String filePath = dest.getAbsolutePath();
+        String[] complexCommand = {"-y", "-i", yourRealPath, "-s", "640x360", "-r", "24", "-vcodec", "mpeg4", "-b:v", "150k", "-b:a", "48000", "-ac", "2", "-ar", "22050", filePath};
+        // execFFmpegBinary(complexCommand);
+        FFmpegWrapper.getInstance(this).compressVideo(yourRealPath, filePath, mFFmpegCallback);
+
+        Log.d(TAG, "execute compress video command");
     }
+
+    private FFmpegWrapper.Callback mFFmpegCallback = new FFmpegWrapper.Callback() {
+        @Override
+        public void onStart() {
+        }
+
+        @Override
+        public void onFinish() {
+
+        }
+
+        @Override
+        public void onProgress(String progress) {
+            Log.d(TAG, "onProgress: " + progress);
+        }
+
+        @Override
+        public void onSuccess(String msg) {
+
+        }
+
+        @Override
+        public void onFailure(String msg) {
+
+        }
+    };
 
 
     private void initView() {
@@ -236,7 +225,8 @@ public class VideoTrimActivity extends Activity implements View.OnClickListener 
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.btn_video_crop_cancel:
-                finish();
+//                finish();
+                executeCompressCommand();
                 Toast.makeText(this, "Cancel", Toast.LENGTH_SHORT).show();
                 break;
             case R.id.btn_video_crop_confirm:
@@ -254,8 +244,9 @@ public class VideoTrimActivity extends Activity implements View.OnClickListener 
         String startTime = String.format("%.1f", mStartTime / 1000);
         String duration = String.format("%.1f", (mEndTime - mStartTime) / 1000);
 
-        String[] complexCommand = {"-ss", "" + startTime, "-y", "-i", sour, "-t", "" + duration, "-c", "copy" , dest};
-        execFFmpegBinary(complexCommand);
+        // String[] complexCommand = {"-ss", "" + startTime, "-y", "-i", sour, "-t", "" + duration, "-c", "copy" , dest};
+        FFmpegWrapper.getInstance(this).cropVideo(VideoUtils.getVideoPath(this, mVideoUri), dest, new Rect(200, 200, 500, 500), mFFmpegCallback);
+        // execFFmpegBinary(complexCommand);
     }
 
 
