@@ -111,14 +111,14 @@ public class FFmpegWrapper {
      * Compress Video
      */
     public void compressVideo(String srcPath, String destPath, Callback callback) {
-        Log.d(TAG, "");
         String[] complexCommand = {
                 "-y",
                 "-i", srcPath,
                 "-s", "640x360",
                 "-r", "24",
-                "-vcodec", "mpeg4",
+                "-vcodec", "libx264",
                 "-b:v", "150k",
+                // "-b:a", "48000",
                 "-b:a", "48000",
                 "-ac", "2",
                 "-ar", "22050",
